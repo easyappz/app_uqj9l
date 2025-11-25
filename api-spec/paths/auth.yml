@@ -1,0 +1,100 @@
+register:
+  post:
+    summary: Register a new member
+    description: Creates a new member account with username and login
+    tags:
+      - Authentication
+    isSecure: false
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              username:
+                type: string
+                maxLength: 150
+                description: Member's display name
+              login:
+                type: string
+                maxLength: 150
+                description: Unique login identifier
+            required:
+              - username
+              - login
+    responses:
+      '201':
+        description: Member successfully registered
+        content:
+          application/json:
+            schema:
+              $ref: '../openapi.yml#/components/schemas/AuthToken'
+      '400':
+        description: Validation error or login already exists
+        content:
+          application/json:
+            schema:
+              $ref: '../openapi.yml#/components/schemas/Error'
+
+login:
+  post:
+    summary: Login member
+    description: Authenticates a member using login and returns authentication token
+    tags:
+      - Authentication
+    isSecure: false
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              login:
+                type: string
+                description: Member's unique login identifier
+            required:
+              - login
+    responses:
+      '200':
+        description: Successfully authenticated
+        content:
+          application/json:
+            schema:
+              $ref: '../openapi.yml#/components/schemas/AuthToken'
+      '400':
+        description: Invalid credentials
+        content:
+          application/json:
+            schema:
+              $ref: '../openapi.yml#/components/schemas/Error'
+      '404':
+        description: Member not found
+        content:
+          application/json:
+            schema:
+              $ref: '../openapi.yml#/components/schemas/Error'
+
+me:
+  get:
+    summary: Get current member data
+    description: Returns the authenticated member's information
+    tags:
+      - Authentication
+    isSecure: true
+    security:
+      - TokenAuth: []
+    responses:
+      '200':
+        description: Current member data
+        content:
+          application/json:
+            schema:
+              $ref: '../openapi.yml#/components/schemas/Member'
+      '401':
+        description: Unauthorized - invalid or missing token
+        content:
+          application/json:
+            schema:
+              $ref: '../openapi.yml#/components/schemas/Error'
