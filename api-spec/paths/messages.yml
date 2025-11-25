@@ -1,0 +1,65 @@
+list:
+  get:
+    summary: Get message history
+    description: Returns all messages in chronological order
+    tags:
+      - Messages
+    isSecure: true
+    security:
+      - TokenAuth: []
+    responses:
+      '200':
+        description: List of messages
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '../openapi.yml#/components/schemas/Message'
+      '401':
+        description: Unauthorized - invalid or missing token
+        content:
+          application/json:
+            schema:
+              $ref: '../openapi.yml#/components/schemas/Error'
+
+create:
+  post:
+    summary: Send a new message
+    description: Creates a new message from the authenticated member
+    tags:
+      - Messages
+    isSecure: true
+    security:
+      - TokenAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              text:
+                type: string
+                description: Message text content
+            required:
+              - text
+    responses:
+      '201':
+        description: Message successfully created
+        content:
+          application/json:
+            schema:
+              $ref: '../openapi.yml#/components/schemas/Message'
+      '400':
+        description: Validation error
+        content:
+          application/json:
+            schema:
+              $ref: '../openapi.yml#/components/schemas/Error'
+      '401':
+        description: Unauthorized - invalid or missing token
+        content:
+          application/json:
+            schema:
+              $ref: '../openapi.yml#/components/schemas/Error'
