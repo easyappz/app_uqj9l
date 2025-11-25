@@ -2,8 +2,8 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from django.utils.crypto import get_random_string
-from .models import Member
-from .serializers import MemberSerializer
+from .models import Member, Message
+from .serializers import MemberSerializer, MessageSerializer
 from .authentication import TokenAuthentication
 
 
@@ -100,3 +100,47 @@ class MeView(APIView):
 
         serializer = MemberSerializer(request.user)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class MessagesListView(APIView):
+    """API endpoint for getting all messages"""
+    authentication_classes = [TokenAuthentication]
+
+    def get(self, request):
+        if not request.user or not request.user.is_authenticated:
+            return Response(
+                {'error': 'Unauthorized'},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+
+        messages = Message.objects.all().order_by('created_at')
+        serializer = MessageSerializer(messages, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class MessageCreateView(APIView):
+    """API endpoint for creating a new message"""
+    authentication_classes = [TokenAuthentication]
+
+    def post(self, request):
+        if not request.user or not request.user.is_authenticated:
+            return Response(
+                {'error': 'Unauthorized'},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+
+        text = request.data.get('text')
+
+        if not text:
+            return Response(
+                {'error': 'Text is required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        message = Message.objects.create(
+            member=request.user,
+            text=text
+        )
+
+        serializer = MessageSerializer(message)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
