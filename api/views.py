@@ -102,11 +102,12 @@ class MeView(APIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
-class MessagesListView(APIView):
-    """API endpoint for getting all messages"""
+class MessagesView(APIView):
+    """API endpoint for getting all messages and creating new messages"""
     authentication_classes = [TokenAuthentication]
 
     def get(self, request):
+        """Get all messages in chronological order"""
         if not request.user or not request.user.is_authenticated:
             return Response(
                 {'error': 'Unauthorized'},
@@ -117,12 +118,8 @@ class MessagesListView(APIView):
         serializer = MessageSerializer(messages, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
-
-class MessageCreateView(APIView):
-    """API endpoint for creating a new message"""
-    authentication_classes = [TokenAuthentication]
-
     def post(self, request):
+        """Create a new message"""
         if not request.user or not request.user.is_authenticated:
             return Response(
                 {'error': 'Unauthorized'},
