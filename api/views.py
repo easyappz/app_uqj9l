@@ -1,19 +1,102 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from django.utils import timezone
-from drf_spectacular.utils import extend_schema
-from .serializers import MessageSerializer
+from rest_framework import status
+from django.utils.crypto import get_random_string
+from .models import Member
+from .serializers import MemberSerializer
+from .authentication import TokenAuthentication
 
 
-class HelloView(APIView):
-    """
-    A simple API endpoint that returns a greeting message.
-    """
+class RegisterView(APIView):
+    """API endpoint for member registration"""
+    authentication_classes = []
+    permission_classes = []
 
-    @extend_schema(
-        responses={200: MessageSerializer}, description="Get a hello world message"
-    )
+    def post(self, request):
+        username = request.data.get('username')
+        login = request.data.get('login')
+
+        if not username or not login:
+            return Response(
+                {'error': 'Username and login are required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if Member.objects.filter(login=login).exists():
+            return Response(
+                {'error': 'Login already exists'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if Member.objects.filter(username=username).exists():
+            return Response(
+                {'error': 'Username already exists'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        token = get_random_string(64)
+        member = Member.objects.create(
+            username=username,
+            login=login,
+            token=token
+        )
+
+        serializer = MemberSerializer(member)
+        return Response(
+            {
+                'token': token,
+                'member': serializer.data
+            },
+            status=status.HTTP_201_CREATED
+        )
+
+
+class LoginView(APIView):
+    """API endpoint for member login"""
+    authentication_classes = []
+    permission_classes = []
+
+    def post(self, request):
+        login = request.data.get('login')
+
+        if not login:
+            return Response(
+                {'error': 'Login is required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            member = Member.objects.get(login=login)
+        except Member.DoesNotExist:
+            return Response(
+                {'error': 'Member not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        if not member.token:
+            member.token = get_random_string(64)
+            member.save()
+
+        serializer = MemberSerializer(member)
+        return Response(
+            {
+                'token': member.token,
+                'member': serializer.data
+            },
+            status=status.HTTP_200_OK
+        )
+
+
+class MeView(APIView):
+    """API endpoint for getting current member data"""
+    authentication_classes = [TokenAuthentication]
+
     def get(self, request):
-        data = {"message": "Hello!", "timestamp": timezone.now()}
-        serializer = MessageSerializer(data)
-        return Response(serializer.data)
+        if not request.user or not request.user.is_authenticated:
+            return Response(
+                {'error': 'Unauthorized'},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+
+        serializer = MemberSerializer(request.user)
+        return Response(serializer.data, status=status.HTTP_200_OK)
